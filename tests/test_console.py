@@ -63,7 +63,7 @@ class TestConsole(unittest.TestCase):
             HBNBCommand().onecmd("show")
             self.assertEqual(expected, f.getvalue())
 
-	def test_show_with_wrong_model_fail(self):
+    def test_show_with_wrong_model_fail(self):
         """Test if show with wrong model fails."""
         expected = "** class doesn't exist **\n"
         with patch('sys.stdout', new=StringIO()) as f:
@@ -105,7 +105,7 @@ class TestConsole(unittest.TestCase):
             HBNBCommand().onecmd("update BaseModel")
             self.assertEqual(expected, f.getvalue())
 
-	def test_update_with_wrong_inst_id_fail(self):
+    def test_update_with_wrong_inst_id_fail(self):
         """Test if show with wrong inst id fails."""
         expected = "** no instance found **\n"
         with patch('sys.stdout', new=StringIO()) as f:
@@ -157,4 +157,138 @@ class TestConsole(unittest.TestCase):
         """Test if all return list of all instances of a model."""
         class_name = ['BaseModel', 'City', 'State', 'Place']
         class_name += ['Review', 'Amenity', 'User']
-	
+
+        for name in class_name:
+            with patch('sys.stdout', new=StringIO()) as f:
+                HBNBCommand().onecmd(f"all {name}")
+                out = []
+                for k, v in storage.all().items():
+                    k = k.split('.')
+                    if name == k[0]:
+                        v = v.to_dict()
+                        obj = eval(f'{name}(**v)')
+                        out.append(str(obj))
+                self.assertEqual(f'{out}\n', f.getvalue())
+
+    def test_update_def_models(self):
+        """Test if all each model can be updated."""
+        class_name = ['BaseModel', 'City', 'State', 'Place']
+        class_name += ['Review', 'Amenity', 'User']
+
+        for name in class_name:
+            with patch('sys.stdout', new=StringIO()) as f:
+                HBNBCommand().onecmd(f"create {name}")
+                id = f.getvalue().replace('\n', '')
+            with patch('sys.stdout', new=StringIO()) as f:
+                fmt = ".update(" + id + ", {'attribute_name': 'string_value'})"
+                formatted = HBNBCommand().precmd(name + fmt)
+                formatted = HBNBCommand().onecmd(formatted)
+                self.assertEqual('', f.getvalue())
+                storage.reload()
+                key = f'{name}.{id}'
+                with open('file.json', 'r', encoding='utf-8') as f:
+                    dict_obj = json.loads(f.read())
+                obj = dict_obj[key]
+                self.assertIn('attribute_name', obj)
+                self.assertEqual(obj['attribute_name'], 'string_value')
+
+    def test_count_def_models(self):
+        """Test if method count return the total instance of each model."""
+        class_name = ['BaseModel', 'City', 'State', 'Place']
+        class_name += ['Review', 'Amenity', 'User']
+
+        for name in class_name:
+            with patch('sys.stdout', new=StringIO()) as f:
+                formatted_command = HBNBCommand().precmd(f'{name}.count()')
+                HBNBCommand().onecmd(formatted_command)
+                cmd_cnt = f.getvalue().strip()
+                cnt = 0
+                for k in storage.all():
+                    # nme = k[:k.index('.')]
+                    if name in k:
+                        cnt += 1
+                print(name)
+                self.assertEqual(f'{str(cnt)}', cmd_cnt)
+
+    def test_show_def_with_wrong_model_fail(self):
+        """Test if show with wrong model fails."""
+        expected = "** class doesn't exist **\n"
+
+        with patch('sys.stdout', new=StringIO()) as f:
+            formatted_cmd = HBNBCommand().precmd("FakeModel.show()")
+            HBNBCommand().onecmd(formatted_cmd)
+            self.assertEqual(expected, f.getvalue())
+
+    def test_show_def_without_inst_id_fail(self):
+        """Test if show without inst id fails."""
+        class_name = ['BaseModel', 'City', 'State', 'Place']
+        class_name += ['Review', 'Amenity', 'User']
+        expected = "** instance id missing **\n"
+
+        for name in class_name:
+            with patch('sys.stdout', new=StringIO()) as f:
+                formatted_cmd = HBNBCommand().precmd(f"{name}.show()")
+                HBNBCommand().onecmd(formatted_cmd)
+                self.assertEqual(expected, f.getvalue())
+
+    def test_show_def_with_wrong_inst_id_fail(self):
+        """Test if show with wrong inst id fails."""
+        class_name = ['BaseModel', 'City', 'State', 'Place']
+        class_name += ['Review', 'Amenity', 'User']
+        expected = "** no instance found **\n"
+
+        for name in class_name:
+            with patch('sys.stdout', new=StringIO()) as f:
+                formatted_command = HBNBCommand().precmd(f"{name}.show(24217-2372673)")
+                HBNBCommand().onecmd(formatted_command)
+                self.assertEqual(expected, f.getvalue())
+
+    def test_destroy_def_with_wrong_model_fail(self):
+        """Test if show with wrong model fails."""
+        expected = "** class doesn't exist **\n"
+        with patch('sys.stdout', new=StringIO()) as f:
+            formatted_command = HBNBCommand().precmd("FakeModel.destroy()")
+            HBNBCommand().onecmd(formatted_command)
+            self.assertEqual(expected, f.getvalue())
+
+    def test_destroy_def_without_inst_id_fail(self):
+        """Test if destroy without inst id fails."""
+        class_name = ['BaseModel', 'City', 'State', 'Place']
+        class_name += ['Review', 'Amenity', 'User']
+        expected = "** instance id missing **\n"
+
+        for name in class_name:
+            with patch('sys.stdout', new=StringIO()) as f:
+                formatted_command = HBNBCommand().precmd(f"{name}.destroy()")
+                HBNBCommand().onecmd(formatted_command)
+                self.assertEqual(expected, f.getvalue())
+
+    def test_destroy_def_with_wrong_inst_id_fail(self):
+        """Test if destroy with wrong inst id fails."""
+        class_name = ['BaseModel', 'City', 'State', 'Place']
+        class_name += ['Review', 'Amenity', 'User']
+        expected = "** no instance found **\n"
+
+        for name in class_name:
+            with patch('sys.stdout', new=StringIO()) as f:
+                formatted_command = HBNBCommand().precmd(f"{name}.destroy(24217-2372673)")
+                HBNBCommand().onecmd(formatted_command)
+                self.assertEqual(expected, f.getvalue())
+
+    def test_def_all_model(self):
+        """Test if all return list of all instances of a model."""
+        class_name = ['BaseModel', 'City', 'State', 'Place']
+        class_name += ['Review', 'Amenity', 'User']
+
+        for name in class_name:
+            with patch('sys.stdout', new=StringIO()) as f:
+                formatted_command = HBNBCommand().precmd(f"{name}.all()")
+                HBNBCommand().onecmd(formatted_command)
+                out = []
+                for k, v in storage.all().items():
+                    k = k.split('.')
+                    if k[0] == name:
+                        v = v.to_dict()
+                        obj = eval(f'{k[0]}(**v)')
+                        out.append(str(obj))
+                self.assertEqual(f'{out}\n', f.getvalue())
